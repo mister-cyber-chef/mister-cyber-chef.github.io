@@ -1,0 +1,511 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Doomscroll CTF – SQL Console</title>
+
+    <!-- pyodide python in wasm from cdn -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.29.0/full/pyodide.js"></script>
+
+    <!-- ace Editor stuff -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/theme-twilight.min.js"></script>
+
+    <!-- console styles -->
+    <link rel="stylesheet" href="../styles/doomscroll.css" />
+  </head>
+  <body>
+
+    <!-- hamburger nav -->
+    <nav class="ds-site-nav">
+  <button class="ds-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+    <span class="ds-nav-toggle-bar"></span>
+    <span class="ds-nav-toggle-bar"></span>
+    <span class="ds-nav-toggle-bar"></span>
+  </button>
+
+  <!-- new text label -->
+  <span class="ds-nav-label">Instructions</span>
+
+  <ul class="ds-nav-links">
+    <li>
+      <a href="/doomscroll/instructions/instructions_doomscroll_logs_logged_out.html" target="_blank" rel="noopener noreferrer">
+        Instructions for doomscroll_logs_logged_out
+      </a>
+    </li>
+  </ul>
+</nav>
+
+    <h1>Doomscroll CTF – SQL Console</h1>
+    <h3>
+      <a
+        href="https://github.com/mister-cyber-chef"
+        target="_blank"
+        style="color:#249a14;text-decoration:none;"
+        >Mr.CyberChef whipping up SQL CTH in wasm sauce</a
+      >
+    </h3>
+    <p>
+      Database:
+      <code>Doomscroll CTF</code>
+      (Running sqlite3/DB file in Browser with WebAssembly).
+    </p>
+
+    <!-- status line pyodide and db info -->
+    <div id="status" class="status">
+      <span id="py-status">Pyodide: loading…</span>
+      <span id="db-status">DB: not loaded</span>
+    </div>
+
+    <!-- db selection info -->
+    <div class="db-controls">
+      <label>
+        Active DB:
+        <span id="active-db-label">doomscroll_logs_logged_out.db</span>
+      </label>
+      <label>
+        Load DB:
+        <input type="file" id="db-file-input" accept=".db" />
+      </label>
+    </div>
+
+    <!-- tabs header for query views -->
+    <div class="tabs-header" id="tabs-header">
+      <!-- tab buttons created by js -->
+      <button id="add-tab-btn" title="Add tab">+</button>
+    </div>
+
+    <!-- tab containers for ui -->
+    <div id="tabs-container">
+    </div>
+
+    <script type="text/javascript">
+      // pyodide and sqlite setup
+
+      let pyodideReadyPromise = loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
+      });
+
+      const pyStatus = document.getElementById("py-status");
+      const dbStatus = document.getElementById("db-status");
+      const activeDbLabel = document.getElementById("active-db-label");
+      const dbFileInput = document.getElementById("db-file-input");
+
+      async function initPy() {
+        const pyodide = await pyodideReadyPromise;
+        pyStatus.textContent = "Pyodide: loaded";
+
+        // pull sqlite package into pyodide
+        await pyodide.loadPackage("sqlite3");
+
+        // drop helper functions into pyodide
+        await pyodide.runPythonAsync(`
+from js import fetch
+import sqlite3
+
+DB_PATH = "doomscroll_logs_logged_out.db"
+conn = None
+
+def _open_conn(path: str):
+    global conn, DB_PATH
+    DB_PATH = path
+    if conn is not None:
+        conn.close()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+async def load_db_from_url(url: str):
+    """
+    download db file over http into browser fs then open sqlite connection
+    """
+    global DB_PATH
+    res = await fetch(url)
+    buffer = await res.arrayBuffer()
+    data = bytes(buffer.valueOf().to_py())
+    with open(DB_PATH, "wb") as f:
+        f.write(data)
+    _open_conn(DB_PATH)
+
+def load_db_from_fs(path: str):
+    """
+    open db file that already lives in pyodide fs
+    """
+    _open_conn(path)
+
+def get_db_path() -> str:
+    """
+    quick helper to see what db path we are using
+    """
+    return DB_PATH
+
+def is_safe_sql(sql: str) -> bool:
+    """
+    tiny guard so user cannot run create or drop
+    """
+    if not sql:
+        return False
+    s = sql.lower()
+    if "create" in s or "drop" in s:
+        return False
+    return True
+
+def run_query(sql: str):
+    """
+    run sql against current connection and hand back rows and columns
+    """
+    global conn
+    if conn is None:
+        raise RuntimeError("database not loaded")
+    if not is_safe_sql(sql):
+        raise ValueError("CREATE/DROP are not allowed in this console.")
+
+    cur = conn.execute(sql)
+    cols = [d[0] for d in cur.description] if cur.description else []
+    rows = cur.fetchall()
+
+    max_rows = 1000
+    data = []
+    for row in rows[:max_rows]:
+        # convert values to strings so ui does not choke
+        data.append([str(v) if v is not None else "" for v in row])
+
+    return {"columns": cols, "rows": data}
+        `);
+
+        // load default db 
+        dbStatus.textContent = "DB: loading…";
+        await pyodide.runPythonAsync(`
+import asyncio
+await load_db_from_url("doomscroll_logs_logged_out.db")
+        `);
+        dbStatus.textContent = "DB: loaded";
+        activeDbLabel.textContent = "doomscroll_logs_logged_out.db";
+
+        return pyodide;
+      }
+
+      const appReady = initPy().catch((err) => {
+        console.error(err);
+        pyStatus.textContent = "Pyodide: error during init";
+        dbStatus.textContent = "DB: not loaded";
+      });
+
+      // handle local db uploads from user
+
+      dbFileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+          const pyodide = await appReady;
+          if (!pyodide) {
+            throw new Error("Pyodide failed to initialize.");
+          }
+
+          const buffer = await file.arrayBuffer();
+          const uint8 = new Uint8Array(buffer);
+
+          // stash uploaded db in pyodide virtual fs under its name
+          pyodide.FS.writeFile(file.name, uint8);
+
+          // tell python side to open that db
+          pyodide.globals.set("DB_FILE_NAME", file.name);
+          await pyodide.runPythonAsync(`load_db_from_fs(DB_FILE_NAME)`);
+
+          dbStatus.textContent = `DB: loaded (${file.name})`;
+          activeDbLabel.textContent = file.name;
+        } catch (e) {
+          console.error(e);
+          dbStatus.textContent = "DB: error loading file";
+          alert("Error loading DB: " + (e.message || String(e)));
+        } finally {
+          // clear input so same file can be chosen again if needed
+          dbFileInput.value = "";
+        }
+      });
+
+      // tab setup and query wiring
+
+      const tabsHeader = document.getElementById("tabs-header");
+      const tabsContainer = document.getElementById("tabs-container");
+      const addTabBtn = document.getElementById("add-tab-btn");
+
+      let nextTabId = 1;
+      let currentTabId = null;
+
+      // map of tabId -> Ace editor instance
+      const editors = {};
+
+      function createTab() {
+        const tabId = String(nextTabId++);
+        const tabLabel = `Tab ${tabId}`;
+
+        // build tab button with title and close
+        const btn = document.createElement("button");
+        btn.className = "tab-btn";
+        btn.dataset.tabId = tabId;
+        btn.innerHTML = `
+          <span class="tab-title">${tabLabel}</span>
+          <span class="tab-close" title="Close tab">&times;</span>
+        `;
+        // push this tab in before the add button
+        tabsHeader.insertBefore(btn, addTabBtn);
+
+        // build tab content for query and results
+        const tabDiv = document.createElement("div");
+        tabDiv.className = "tab-content";
+        tabDiv.dataset.tabId = tabId;
+
+        tabDiv.innerHTML = `
+          <div id="results-${tabId}" class="panel results-panel">
+            Run a query to see results…
+          </div>
+          <div id="error-${tabId}" class="error-line"></div>
+          <!-- hidden textarea kept for fallback / accessibility -->
+          <textarea
+            id="sql-input-${tabId}"
+            style="display:none;"
+          ></textarea>
+          <!-- Ace editor container -->
+          <div
+            id="editor-${tabId}"
+            class="sql-editor"
+            style="height: 200px; width: 100%; border: 1px solid #333; margin-top: 8px;"
+          ></div>
+          <button class="run-btn" data-tab-id="${tabId}">Run query</button>
+        `;
+
+        tabsContainer.appendChild(tabDiv);
+
+        // initialize Ace on this tab
+        const editorDiv = document.getElementById(`editor-${tabId}`);
+        if (window.ace && editorDiv) {
+          const editor = ace.edit(editorDiv);
+          editor.setTheme("ace/theme/monokai");
+          editor.session.setMode("ace/mode/sql");
+          editor.session.setUseSoftTabs(true);
+          editor.session.setTabSize(2);
+          editor.setOptions({
+            fontSize: "13px",
+            showPrintMargin: false,
+            wrap: true,
+          });
+
+          editor.setValue(
+            `Write your SQL query for ${tabLabel} here...`,
+            -1
+          );
+
+          editors[tabId] = editor;
+        }
+
+        // flip ui focus to this new tab
+        switchToTab(tabId);
+      }
+
+      function switchToTab(tabId) {
+        currentTabId = tabId;
+
+        // flip active style on tab buttons
+        const buttons = tabsHeader.querySelectorAll(".tab-btn");
+        buttons.forEach((b) => {
+          b.classList.toggle("active", b.dataset.tabId === tabId);
+        });
+
+        // flip visible content pane
+        const contents = tabsContainer.querySelectorAll(".tab-content");
+        contents.forEach((c) => {
+          c.classList.toggle("active", c.dataset.tabId === tabId);
+        });
+      }
+
+      function closeTab(tabId) {
+        // drop the tab button
+        const btn = tabsHeader.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        if (btn) {
+          tabsHeader.removeChild(btn);
+        }
+
+        // drop the tab content pane
+        const content = tabsContainer.querySelector(
+          `.tab-content[data-tab-id="${tabId}"]`
+        );
+        if (content) {
+          tabsContainer.removeChild(content);
+        }
+
+        // drop editor reference if present
+        if (editors[tabId]) {
+          editors[tabId].destroy();
+          delete editors[tabId];
+        }
+
+        // if we closed the active tab pick another one if any exist
+        if (currentTabId === tabId) {
+          const remaining = tabsHeader.querySelectorAll(".tab-btn");
+          if (remaining.length > 0) {
+            switchToTab(remaining[0].dataset.tabId);
+          } else {
+            currentTabId = null;
+          }
+        }
+      }
+
+      // single click wiring for tabs buttons and run actions
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+
+        // handle tab close
+        if (target.classList.contains("tab-close")) {
+          const btn = target.closest(".tab-btn");
+          if (!btn) return;
+          const tabId = btn.dataset.tabId;
+          closeTab(tabId);
+          return;
+        }
+
+        // handle tab switch
+        const tabBtn = target.closest(".tab-btn");
+        if (tabBtn && tabBtn.id !== "add-tab-btn") {
+          const tabId = tabBtn.dataset.tabId;
+          switchToTab(tabId);
+          return;
+        }
+
+        // handle new tab creation
+        if (target.id === "add-tab-btn") {
+          createTab();
+          return;
+        }
+
+        // run query bound to specific tab
+        if (target.classList.contains("run-btn")) {
+          const tabId = target.dataset.tabId;
+          runSqlForTab(tabId, target);
+          return;
+        }
+      });
+
+      // double click on tab to rename it
+      document.addEventListener("dblclick", (event) => {
+        const btn = event.target.closest(".tab-btn");
+        if (!btn || btn.id === "add-tab-btn") return;
+
+        const titleSpan = btn.querySelector(".tab-title");
+        if (!titleSpan) return;
+
+        const currentName = titleSpan.textContent;
+        const newName = prompt("Rename tab:", currentName);
+        if (newName && newName.trim()) {
+          titleSpan.textContent = newName.trim();
+        }
+      });
+
+      async function runSqlForTab(tabId, runButton) {
+        const resultsDiv = document.getElementById(`results-${tabId}`);
+        const errorDiv = document.getElementById(`error-${tabId}`);
+        const sqlTextarea = document.getElementById(`sql-input-${tabId}`);
+
+        // pull content from ace if available, otherwise from textarea
+        const editor = editors[tabId];
+        const sql = editor ? editor.getValue() : sqlTextarea.value;
+
+        resultsDiv.innerHTML = "";
+        errorDiv.textContent = "";
+
+        if (!sql.trim()) {
+          errorDiv.textContent = "Enter a SQL query.";
+          return;
+        }
+
+        // freeze this tabs run button while query is running
+        runButton.disabled = true;
+        const originalLabel = runButton.textContent;
+        runButton.textContent = "Running…";
+
+        try {
+          const pyodide = await appReady;
+          if (!pyodide) {
+            throw new Error("Pyodide failed to initialize.");
+          }
+
+          // hand sql string into python and call 'run_query'
+          pyodide.globals.set("CURRENT_SQL", sql);
+          const result = await pyodide.runPythonAsync("run_query(CURRENT_SQL)");
+
+          renderResults(result, resultsDiv);
+        } catch (e) {
+          console.error(e);
+          errorDiv.textContent = e.message || String(e);
+        } finally {
+          runButton.disabled = false;
+          runButton.textContent = originalLabel;
+        }
+      }
+
+      function renderResults(result, container) {
+        container.innerHTML = "";
+
+        if (!result || !result.columns || !result.rows || result.rows.length === 0) {
+          container.textContent = "No rows returned.";
+          return;
+        }
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+
+        for (const col of result.columns) {
+          const th = document.createElement("th");
+          th.textContent = col;
+          headerRow.appendChild(th);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        for (const row of result.rows) {
+          const tr = document.createElement("tr");
+          for (const cell of row) {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+
+        container.appendChild(table);
+      }
+
+      // spin up a few tabs by default
+      createTab();
+      createTab(); 
+      createTab(); 
+
+      // nav toggle for Doomscroll header
+      (function initDoomscrollNav() {
+        const nav = document.querySelector(".ds-site-nav");
+        if (!nav) return;
+
+        const toggle = nav.querySelector(".ds-nav-toggle");
+        const links = nav.querySelector(".ds-nav-links");
+
+        if (!toggle || !links) return;
+
+        toggle.addEventListener("click", () => {
+          const isOpen = nav.classList.toggle("ds-open");
+          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        });
+
+        links.addEventListener("click", (event) => {
+          if (event.target.tagName.toLowerCase() === "a") {
+            nav.classList.remove("ds-open");
+            toggle.setAttribute("aria-expanded", "false");
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
