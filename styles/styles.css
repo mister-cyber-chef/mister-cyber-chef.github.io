@@ -86,16 +86,21 @@ p {
 #add-tab-btn {
   margin-left: auto;
   border-radius: 50%;
-  border: 1px solid #333;
-  width: 26px;
-  height: 26px;
+  border: 1px solid #2563eb;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.1rem;
   cursor: pointer;
-  background: #181818;
-  color: #ccc;
+  background: #2563eb;
+  color: #fff;
+}
+
+#add-tab-btn:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .panel {
