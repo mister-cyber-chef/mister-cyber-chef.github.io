@@ -19,28 +19,27 @@
 
     <!-- hamburger nav -->
     <nav class="ds-site-nav">
-  <button class="ds-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
-    <span class="ds-nav-toggle-bar"></span>
-    <span class="ds-nav-toggle-bar"></span>
-    <span class="ds-nav-toggle-bar"></span>
-  </button>
+      <button class="ds-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+      </button>
 
-  <!-- new text label -->
-  <span class="ds-nav-label">Instructions</span>
+      <span class="ds-nav-label">Instructions</span>
 
-  <ul class="ds-nav-links">
-      <li>
-      <a href="../../index.html" rel="noopener noreferrer">
-        The Chef's Blog
-      </a>
-    </li>
-    <li>
-      <a href="/doomscroll/instructions/instructions_doomscroll_logs_logged_out.html" target="_blank" rel="noopener noreferrer">
-        Instructions for doomscroll_logs_logged_out
-      </a>
-    </li>
-  </ul>
-</nav>
+      <ul class="ds-nav-links">
+        <li>
+          <a href="../../index.html" rel="noopener noreferrer">
+            The Chef's Blog
+          </a>
+        </li>
+        <li>
+          <a href="/doomscroll/instructions/instructions_doomscroll_logs_logged_out.html" target="_blank" rel="noopener noreferrer">
+            Instructions for doomscroll_logs_logged_out
+          </a>
+        </li>
+      </ul>
+    </nav>
 
     <h1>Doomscroll CTF – SQL Console</h1>
     <h3>
@@ -48,8 +47,9 @@
         href="https://github.com/mister-cyber-chef"
         target="_blank"
         style="color:#249a14;text-decoration:none;"
-        >Mr.CyberChef whipping up SQL CTH in wasm sauce</a
       >
+        Mr. CyberChef whipping up SQL CTH in wasm sauce
+      </a>
     </h3>
     <p>
       Database:
@@ -60,14 +60,14 @@
     <!-- status line pyodide and db info -->
     <div id="status" class="status">
       <span id="py-status">Pyodide: loading…</span>
-      <span id="db-status">DB: not loaded</span>
+      <span id="db-status">DB: waiting for file</span>
     </div>
 
     <!-- db selection info -->
     <div class="db-controls">
       <label>
         Active DB:
-        <span id="active-db-label">doomscroll_logs_logged_out.db</span>
+        <span id="active-db-label">No database loaded</span>
       </label>
       <label>
         Load DB:
@@ -82,8 +82,7 @@
     </div>
 
     <!-- tab containers for ui -->
-    <div id="tabs-container">
-    </div>
+    <div id="tabs-container"></div>
 
     <script type="text/javascript">
       // pyodide and sqlite setup
@@ -97,19 +96,20 @@
       const activeDbLabel = document.getElementById("active-db-label");
       const dbFileInput = document.getElementById("db-file-input");
 
+      // track whether a db has been successfully loaded
+      let dbLoaded = false;
+
       async function initPy() {
         const pyodide = await pyodideReadyPromise;
         pyStatus.textContent = "Pyodide: loaded";
 
-        // pull sqlite package into pyodide
         await pyodide.loadPackage("sqlite3");
 
-        // drop helper functions into pyodide
         await pyodide.runPythonAsync(`
 from js import fetch
 import sqlite3
 
-DB_PATH = "doomscroll_logs_logged_out.db"
+DB_PATH = ""
 conn = None
 
 def _open_conn(path: str):
@@ -121,33 +121,22 @@ def _open_conn(path: str):
     conn.row_factory = sqlite3.Row
 
 async def load_db_from_url(url: str):
-    """
-    download db file over http into browser fs then open sqlite connection
-    """
     global DB_PATH
     res = await fetch(url)
     buffer = await res.arrayBuffer()
     data = bytes(buffer.valueOf().to_py())
+    DB_PATH = url.split("/")[-1] or "loaded.db"
     with open(DB_PATH, "wb") as f:
         f.write(data)
     _open_conn(DB_PATH)
 
 def load_db_from_fs(path: str):
-    """
-    open db file that already lives in pyodide fs
-    """
     _open_conn(path)
 
 def get_db_path() -> str:
-    """
-    quick helper to see what db path we are using
-    """
     return DB_PATH
 
 def is_safe_sql(sql: str) -> bool:
-    """
-    tiny guard so user cannot run create or drop
-    """
     if not sql:
         return False
     s = sql.lower()
@@ -156,9 +145,6 @@ def is_safe_sql(sql: str) -> bool:
     return True
 
 def run_query(sql: str):
-    """
-    run sql against current connection and hand back rows and columns
-    """
     global conn
     if conn is None:
         raise RuntimeError("database not loaded")
@@ -172,20 +158,15 @@ def run_query(sql: str):
     max_rows = 1000
     data = []
     for row in rows[:max_rows]:
-        # convert values to strings so ui does not choke
         data.append([str(v) if v is not None else "" for v in row])
 
     return {"columns": cols, "rows": data}
         `);
 
-        // load default db 
-        dbStatus.textContent = "DB: loading…";
-        await pyodide.runPythonAsync(`
-import asyncio
-await load_db_from_url("doomscroll_logs_logged_out.db")
-        `);
-        dbStatus.textContent = "DB: loaded";
-        activeDbLabel.textContent = "doomscroll_logs_logged_out.db";
+        // do not load any default db here
+        dbStatus.textContent = "DB: waiting for file";
+        activeDbLabel.textContent = "No database loaded";
+        dbLoaded = false;
 
         return pyodide;
       }
@@ -211,21 +192,21 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
           const buffer = await file.arrayBuffer();
           const uint8 = new Uint8Array(buffer);
 
-          // stash uploaded db in pyodide virtual fs under its name
           pyodide.FS.writeFile(file.name, uint8);
 
-          // tell python side to open that db
           pyodide.globals.set("DB_FILE_NAME", file.name);
           await pyodide.runPythonAsync(`load_db_from_fs(DB_FILE_NAME)`);
 
           dbStatus.textContent = `DB: loaded (${file.name})`;
           activeDbLabel.textContent = file.name;
+          dbLoaded = true;
         } catch (e) {
           console.error(e);
           dbStatus.textContent = "DB: error loading file";
           alert("Error loading DB: " + (e.message || String(e)));
+          dbLoaded = false;
+          activeDbLabel.textContent = "No database loaded";
         } finally {
-          // clear input so same file can be chosen again if needed
           dbFileInput.value = "";
         }
       });
@@ -254,7 +235,6 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
           <span class="tab-title">${tabLabel}</span>
           <span class="tab-close" title="Close tab">&times;</span>
         `;
-        // push this tab in before the add button
         tabsHeader.insertBefore(btn, addTabBtn);
 
         // build tab content for query and results
@@ -267,12 +247,10 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
             Run a query to see results…
           </div>
           <div id="error-${tabId}" class="error-line"></div>
-          <!-- hidden textarea kept for fallback / accessibility -->
           <textarea
             id="sql-input-${tabId}"
             style="display:none;"
           ></textarea>
-          <!-- Ace editor container -->
           <div
             id="editor-${tabId}"
             class="sql-editor"
@@ -312,13 +290,11 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
       function switchToTab(tabId) {
         currentTabId = tabId;
 
-        // flip active style on tab buttons
         const buttons = tabsHeader.querySelectorAll(".tab-btn");
         buttons.forEach((b) => {
           b.classList.toggle("active", b.dataset.tabId === tabId);
         });
 
-        // flip visible content pane
         const contents = tabsContainer.querySelectorAll(".tab-content");
         contents.forEach((c) => {
           c.classList.toggle("active", c.dataset.tabId === tabId);
@@ -326,13 +302,11 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
       }
 
       function closeTab(tabId) {
-        // drop the tab button
         const btn = tabsHeader.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
         if (btn) {
           tabsHeader.removeChild(btn);
         }
 
-        // drop the tab content pane
         const content = tabsContainer.querySelector(
           `.tab-content[data-tab-id="${tabId}"]`
         );
@@ -340,13 +314,11 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
           tabsContainer.removeChild(content);
         }
 
-        // drop editor reference if present
         if (editors[tabId]) {
           editors[tabId].destroy();
           delete editors[tabId];
         }
 
-        // if we closed the active tab pick another one if any exist
         if (currentTabId === tabId) {
           const remaining = tabsHeader.querySelectorAll(".tab-btn");
           if (remaining.length > 0) {
@@ -361,7 +333,6 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
       document.addEventListener("click", (event) => {
         const target = event.target;
 
-        // handle tab close
         if (target.classList.contains("tab-close")) {
           const btn = target.closest(".tab-btn");
           if (!btn) return;
@@ -370,7 +341,6 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
           return;
         }
 
-        // handle tab switch
         const tabBtn = target.closest(".tab-btn");
         if (tabBtn && tabBtn.id !== "add-tab-btn") {
           const tabId = tabBtn.dataset.tabId;
@@ -378,13 +348,11 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
           return;
         }
 
-        // handle new tab creation
         if (target.id === "add-tab-btn") {
           createTab();
           return;
         }
 
-        // run query bound to specific tab
         if (target.classList.contains("run-btn")) {
           const tabId = target.dataset.tabId;
           runSqlForTab(tabId, target);
@@ -412,19 +380,23 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
         const errorDiv = document.getElementById(`error-${tabId}`);
         const sqlTextarea = document.getElementById(`sql-input-${tabId}`);
 
-        // pull content from ace if available, otherwise from textarea
         const editor = editors[tabId];
         const sql = editor ? editor.getValue() : sqlTextarea.value;
+        const trimmed = sql.trim();
 
         resultsDiv.innerHTML = "";
         errorDiv.textContent = "";
 
-        if (!sql.trim()) {
+        if (!dbLoaded) {
+          errorDiv.textContent = "Load a database file before running a query.";
+          return;
+        }
+
+        if (!trimmed || trimmed.startsWith("Write your SQL query")) {
           errorDiv.textContent = "Enter a SQL query.";
           return;
         }
 
-        // freeze this tabs run button while query is running
         runButton.disabled = true;
         const originalLabel = runButton.textContent;
         runButton.textContent = "Running…";
@@ -435,8 +407,7 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
             throw new Error("Pyodide failed to initialize.");
           }
 
-          // hand sql string into python and call 'run_query'
-          pyodide.globals.set("CURRENT_SQL", sql);
+          pyodide.globals.set("CURRENT_SQL", trimmed);
           const result = await pyodide.runPythonAsync("run_query(CURRENT_SQL)");
 
           renderResults(result, resultsDiv);
@@ -486,8 +457,8 @@ await load_db_from_url("doomscroll_logs_logged_out.db")
 
       // spin up a few tabs by default
       createTab();
-      createTab(); 
-      createTab(); 
+      createTab();
+      createTab();
 
       // nav toggle for Doomscroll header
       (function initDoomscrollNav() {
