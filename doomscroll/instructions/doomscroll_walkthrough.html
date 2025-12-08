@@ -1,0 +1,453 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Doomscroll CTF Console Walkthrough</title>
+    <link rel="stylesheet" href="../../styles/styles.css" />
+  </head>
+  <body>
+    <nav class="ds-site-nav">
+      <button class="ds-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+      </button>
+
+      <span class="ds-nav-label">Menu</span>
+
+      <ul class="ds-nav-links">
+        <li>
+          <a href="../doomscroll_ctf.html" rel="noopener noreferrer">
+            Back to console
+          </a>
+        </li>
+        <li>
+          <a href="../../index.html" rel="noopener noreferrer">
+            The Chef's Blog
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="walkthrough-page">
+      <header class="walkthrough-hero">
+
+        <div class="walkthrough-hero-text">
+          <h1 class="walkthrough-title">Doomscroll CTF Console Walkthrough</h1>
+          <p class="walkthrough-subtitle">
+            Thanks for taking the time to explore this console.
+            My aim is to give you a clear tour so you can load the data,
+            write queries, and experiment without feeling overwhelmed.
+          </p>
+
+          <div class="walkthrough-hero-actions">
+            <a href="../doomscroll_ctf.html" class="walkthrough-primary-btn">
+              Open the console
+            </a>
+          </div>
+        </div>
+
+        <div class="walkthrough-hero-side">
+          <div class="walkthrough-mini-card">
+            <p class="walkthrough-mini-label">You can use this page to</p>
+            <ul class="walkthrough-bullet-list">
+              <li>Understand what each part of the console does</li>
+              <li>Learn how tabs and naming work</li>
+              <li>Grab a few starter queries you can run right away</li>
+            </ul>
+          </div>
+        </div>
+      </header>
+
+      <section class="walkthrough-toc">
+        <h2 class="walkthrough-section-title">Guide overview</h2>
+        <div class="walkthrough-toc-grid">
+          <a href="#step-orientation" class="walkthrough-toc-item">Getting oriented</a>
+          <a href="#step-load-db" class="walkthrough-toc-item">Loading a database file</a>
+          <a href="#step-tabs" class="walkthrough-toc-item">Using tabs</a>
+          <a href="#step-rename" class="walkthrough-toc-item">Renaming tabs</a>
+          <a href="#step-run" class="walkthrough-toc-item">Running queries</a>
+          <a href="#step-examples" class="walkthrough-toc-item">Example queries</a>
+          <a href="#step-table-ref" class="walkthrough-toc-item">Table reference</a>
+          <a href="#step-next" class="walkthrough-toc-item">Next steps</a>
+        </div>
+      </section>
+
+      <section id="step-orientation" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Getting oriented in the console</h2>
+        <div class="walkthrough-card">
+          <p>
+            When you open the console you will see the title, description, and a status line.
+            Pyodide will load first. Once it says loaded you are ready to bring in your own
+            sqlite file. Until then the console waits patiently.
+          </p>
+        </div>
+      </section>
+
+      <section id="step-load-db" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Loading a database file</h2>
+        <div class="walkthrough-card">
+          <p>
+            The active database label will initially say that no database is loaded.
+            That is normal. When you choose a sqlite file the console stores it inside the
+            browser sandbox and opens it using the sqlite library running inside Pyodide.
+          </p>
+          <p class="walkthrough-note">
+            If something goes wrong the error will show in the status line.
+            No files on your local machine are modified.
+          </p>
+        </div>
+      </section>
+
+      <section id="step-tabs" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Working with tabs</h2>
+        <div class="walkthrough-card">
+          <p>
+            Tabs let you explore several ideas at once.
+            Each tab owns its editor, results panel, and error line.
+            You can create as many tabs as you need with the plus button.
+          </p>
+        </div>
+      </section>
+
+      <section id="step-rename" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Renaming tabs so they match your work</h2>
+        <div class="walkthrough-card">
+          <p>
+            Double click a tab title to rename it.
+            This helps keep your ideas clear when you are following multiple threads.
+          </p>
+        </div>
+      </section>
+
+      <section id="step-run" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Writing and running queries</h2>
+        <div class="walkthrough-card">
+          <p>
+            Each tab uses an Ace SQL editor.
+            When you click Run Query the console sends your SQL into Pyodide and renders the results.
+          </p>
+          <p class="walkthrough-note">
+            Create and drop statements are blocked to keep the focus on reading data.
+          </p>
+        </div>
+      </section>
+
+      <section id="step-examples" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Example SQL queries you can try</h2>
+        <div class="walkthrough-card">
+
+<div class="walkthrough-query-block">
+            <div class="walkthrough-query-label">Count total rows</div>
+            <pre class="walkthrough-code"><code>SELECT
+  COUNT(*) AS total_rows
+FROM doomscroll_logs_logged_out</code></pre>
+          </div>
+
+          <div class="walkthrough-query-block">
+            <div class="walkthrough-query-label">Top response codes</div>
+            <pre class="walkthrough-code"><code>SELECT
+  responseCode,
+  COUNT(*) AS cnt
+FROM doomscroll_logs_logged_out
+GROUP BY responseCode
+ORDER BY cnt DESC</code></pre>
+          </div>
+
+          <div class="walkthrough-query-block">
+            <div class="walkthrough-query-label">Most active client IP addresses</div>
+            <pre class="walkthrough-code"><code>SELECT
+  IP,
+  COUNT(*) AS cnt
+FROM doomscroll_logs_logged_out
+GROUP BY IP
+ORDER BY cnt DESC
+LIMIT 25</code></pre>
+          </div>
+
+          <div class="walkthrough-query-block">
+            <div class="walkthrough-query-label">Requests for a specific endpoint key</div>
+            <pre class="walkthrough-code"><code>SELECT
+  timestamp,
+  IP,
+  endpointKey,
+  responseCode
+FROM doomscroll_logs_logged_out
+WHERE endpointKey = 'user:profile'
+ORDER BY timestamp
+LIMIT 50</code></pre>
+          </div>
+
+        </div>
+      </section>
+
+    <section id="step-table-ref" class="walkthrough-section">
+    <h2 class="walkthrough-section-title">Table reference for doomscroll logs</h2>
+
+    <div class="walkthrough-card">
+        <p>
+        This section explains each column in
+        <code>doomscroll_logs_logged_out</code> and what signals they provide during analysis.
+        Each field is short, direct, and focused on practical investigation value.
+        </p>
+
+        <!-- TIMESTAMP -->
+        <div class="walkthrough-field-block">
+        <h3>timestamp</h3>
+        <p>
+            When the request was recorded. Helps show timing clusters, scrapes, and bursts.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Tight request bursts from the same IP or JA4 hash are classic automation patterns.
+        </p>
+        </div>
+
+        <!-- URI -->
+        <div class="walkthrough-field-block">
+        <h3>uri</h3>
+        <p>
+            The full request URI, including the path and query parameters.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Perfect for spotting enumeration steps, pagination abuse, or abnormal navigation.
+        </p>
+        </div>
+
+        <!-- USERID -->
+        <div class="walkthrough-field-block">
+        <h3>userID</h3>
+        <p>
+            The user identifier associated with the request. Often zero in logged-out data.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Helps separate real user behavior from automation attempting to emulate identity.
+        </p>
+        </div>
+
+        <!-- IP -->
+        <div class="walkthrough-field-block">
+        <h3>IP</h3>
+        <p>
+            The client IP that sent the request.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            A core grouping pivot. Useful for identifying high-volume clients, VPN usage, or
+            rotating bot traffic.
+        </p>
+        </div>
+
+        <!-- ASN -->
+        <div class="walkthrough-field-block">
+        <h3>ASN</h3>
+        <p>
+            The autonomous system number for the IP. Maps traffic to cloud providers or ISPs.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Bots heavily favor cloud ASNs. Clusters inside the same ASN often reveal shared
+            infrastructure.
+        </p>
+        </div>
+
+        <!-- REQUEST HEADERS -->
+        <div class="walkthrough-field-block">
+        <h3>requestHeaders</h3>
+        <p>
+            All inbound request headers in JSON form, such as Host, Accept, and User-Agent.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Bot traffic often has malformed, incomplete, or repetitive headers.
+            Real browsers generate much richer patterns.
+        </p>
+        </div>
+
+        <!-- COOKIE NAMES -->
+        <div class="walkthrough-field-block">
+        <h3>requestCookieNames</h3>
+        <p>
+            The cookie names included in the request (comma-separated).
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Real browsers carry complex cookie sets. Scrapers frequently send few cookies or
+            repeat identical ones across sessions.
+        </p>
+        </div>
+
+        <!-- JA4 -->
+        <div class="walkthrough-field-block">
+        <h3>JA4</h3>
+        <p>
+            The TLS fingerprint hash representing the client's handshake properties.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Extremely stable fingerprint. Different user agents with the same JA4 often signal
+            spoofing or bot automation.
+        </p>
+        </div>
+
+        <!-- USER AGENT -->
+        <div class="walkthrough-field-block">
+        <h3>userAgent</h3>
+        <p>
+            The raw User-Agent string reported by the client.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Automated tools often reuse identical user agents or forge unrealistic ones.
+            Compare with JA4 to catch mismatches.
+        </p>
+        </div>
+
+        <!-- PARAMETERS -->
+        <div class="walkthrough-field-block">
+        <h3>parameters</h3>
+        <p>
+            Parsed query parameters from the URI (example: <code>limit=20&offset=2691</code>).
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Extremely helpful for spotting pagination scraping, enumeration pulls, brute force
+            attempts, and weird search parameters.
+        </p>
+        </div>
+
+        <!-- RESPONSE CODE -->
+        <div class="walkthrough-field-block">
+        <h3>responseCode</h3>
+        <p>
+            The HTTP status code returned to the client.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Elevated 429, repeated 400, or rhythmic 404→200 patterns strongly indicate automation
+            or scanning.
+        </p>
+        </div>
+
+        <!-- RESPONSE SIZE -->
+        <div class="walkthrough-field-block">
+        <h3>responseContentSize</h3>
+        <p>
+            The size of the HTTP response body in bytes.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Bots generate highly consistent response sizes. Human behavior generates varied output.
+        </p>
+        </div>
+
+        <!-- ENDPOINT KEY -->
+        <div class="walkthrough-field-block">
+        <h3>endpointKey</h3>
+        <p>
+            A simplified label describing the logical endpoint the client called.
+            Examples: <code>user:profile</code>, <code>feed:home</code>, <code>post:comments</code>.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            A strong pivot field when mapping behavior. Scrapers tend to target profile,
+            search, and comment endpoints disproportionately.
+        </p>
+        </div>
+
+        <!-- AUTH STATUS -->
+        <div class="walkthrough-field-block">
+        <h3>authStatus</h3>
+        <p>
+            Indicates whether the client was logged in or logged out.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Large volumes of logged-out scraping requests hitting sensitive endpoints
+            often mark hostile automation.
+        </p>
+        </div>
+
+        <!-- SERVER LOCAL -->
+        <div class="walkthrough-field-block">
+        <h3>serverLocal</h3>
+        <p>
+            The internal server or region responsible for processing the request.
+            Example: <code>server_hou</code>.
+        </p>
+        <p class="walkthrough-note">
+            <strong>Why it matters:</strong><br>
+            Useful for diagnosing routing quirks, local anomalies, or filtering noisy
+            clients hitting specific server groups.
+        </p>
+        </div>
+
+    </div>
+    </section>
+
+      <section id="step-next" class="walkthrough-section">
+        <h2 class="walkthrough-section-title">Next steps</h2>
+        <div class="walkthrough-card">
+          <p>
+            Load a database, open a few tabs, and see what patterns you notice.
+            Each query builds familiarity with the dataset.
+          </p>
+
+          <a href="../doomscroll_ctf.html" class="walkthrough-primary-btn">
+            Return to console
+          </a>
+        </div>
+      </section>
+
+    </main>
+
+    <script type="text/javascript">
+      (function initNav() {
+        const nav = document.querySelector(".ds-site-nav");
+        const toggle = nav.querySelector(".ds-nav-toggle");
+        const links = nav.querySelector(".ds-nav-links");
+
+        toggle.addEventListener("click", () => {
+          const open = nav.classList.toggle("ds-open");
+          toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+
+        links.addEventListener("click", (event) => {
+          if (event.target.tagName.toLowerCase() === "a") {
+            nav.classList.remove("ds-open");
+            toggle.setAttribute("aria-expanded", "false");
+          }
+        });
+      })();
+    </script>
+    <footer>
+        <div class="centered">
+            <em><p id="footer-year">Doomscroll (The Chef's Blog) | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+        <div class="social-row">
+          <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+            <img src="../../images/IMG_github.jpeg" alt="GitHub Logo">
+          </a>
+
+          <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+              <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+            </svg>
+          </a>
+
+          <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+            </svg>
+          </a>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

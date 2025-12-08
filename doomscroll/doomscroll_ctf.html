@@ -1,0 +1,518 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Doomscroll CTF – SQL Console</title>
+
+    <!-- pyodide python in wasm from cdn -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.29.0/full/pyodide.js"></script>
+
+    <!-- ace Editor stuff -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/theme-twilight.min.js"></script>
+    <!-- console styles -->
+    <link rel="stylesheet" href="../styles/styles.css" />
+  </head>
+  <body>
+
+    <!-- hamburger nav -->
+    <nav class="ds-site-nav">
+      <button class="ds-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+        <span class="ds-nav-toggle-bar"></span>
+      </button>
+
+      <span class="ds-nav-label">Instructions</span>
+
+      <ul class="ds-nav-links">
+        <li>
+          <a href="../../index.html" rel="noopener noreferrer">
+            The Chef's Blog
+          </a>
+        </li>
+        <li>
+          <a href="../doomscroll/instructions/walkthrough.html" rel="noopener noreferrer">
+            Doomscroll Walkthorugh
+          </a>
+        </li>
+        <li>
+          <a href="/doomscroll/instructions/instructions_doomscroll_logs_logged_out.html" target="_blank" rel="noopener noreferrer">
+            Instructions for doomscroll_logs_logged_out
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <h1>Doomscroll CTF – SQL Console</h1>
+    <h2>
+      <a
+        href="../doomscroll/instructions/doomscroll_walkthrough.html"
+        target="_blank"
+        style="color:#0073f7;text-decoration:none;"
+      >
+        Check out the Doomscroll Walkthorugh
+      </a>
+    </h2>
+    <p>
+      Database:
+      <code>Doomscroll CTF</code>
+      (Running sqlite3/DB file in Browser with WebAssembly).
+    </p>
+
+    <!-- status line pyodide and db info -->
+    <div id="status" class="status">
+      <span id="py-status">Pyodide: loading…</span>
+      <span id="db-status">DB: waiting for file</span>
+    </div>
+
+    <!-- db selection info -->
+    <div class="db-controls">
+      <label>
+        Active DB:
+        <span id="active-db-label">No database loaded</span>
+      </label>
+      <label>
+        Load DB:
+        <input type="file" id="db-file-input" accept=".db" />
+      </label>
+    </div>
+
+    <!-- tabs header for query views -->
+    <div class="tabs-header" id="tabs-header">
+      <!-- tab buttons created by js -->
+      <button id="add-tab-btn" title="Add tab">+</button>
+    </div>
+
+    <!-- tab containers for ui -->
+    <div id="tabs-container"></div>
+
+    <script type="text/javascript">
+      // pyodide and sqlite setup
+
+      let pyodideReadyPromise = loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
+      });
+
+      const pyStatus = document.getElementById("py-status");
+      const dbStatus = document.getElementById("db-status");
+      const activeDbLabel = document.getElementById("active-db-label");
+      const dbFileInput = document.getElementById("db-file-input");
+
+      // track whether a db has been successfully loaded
+      let dbLoaded = false;
+
+      async function initPy() {
+        const pyodide = await pyodideReadyPromise;
+        pyStatus.textContent = "Pyodide: loaded";
+
+        await pyodide.loadPackage("sqlite3");
+
+        await pyodide.runPythonAsync(`
+from js import fetch
+import sqlite3
+
+DB_PATH = ""
+conn = None
+
+def _open_conn(path: str):
+    global conn, DB_PATH
+    DB_PATH = path
+    if conn is not None:
+        conn.close()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+async def load_db_from_url(url: str):
+    global DB_PATH
+    res = await fetch(url)
+    buffer = await res.arrayBuffer()
+    data = bytes(buffer.valueOf().to_py())
+    DB_PATH = url.split("/")[-1] or "loaded.db"
+    with open(DB_PATH, "wb") as f:
+        f.write(data)
+    _open_conn(DB_PATH)
+
+def load_db_from_fs(path: str):
+    _open_conn(path)
+
+def get_db_path() -> str:
+    return DB_PATH
+
+def is_safe_sql(sql: str) -> bool:
+    if not sql:
+        return False
+    s = sql.lower()
+    if "create" in s or "drop" in s:
+        return False
+    return True
+
+def run_query(sql: str):
+    global conn
+    if conn is None:
+        raise RuntimeError("database not loaded")
+    if not is_safe_sql(sql):
+        raise ValueError("CREATE/DROP are not allowed in this console.")
+
+    cur = conn.execute(sql)
+    cols = [d[0] for d in cur.description] if cur.description else []
+    rows = cur.fetchall()
+
+    max_rows = 1000
+    data = []
+    for row in rows[:max_rows]:
+        data.append([str(v) if v is not None else "" for v in row])
+
+    return {"columns": cols, "rows": data}
+        `);
+
+        // do not load any default db here
+        dbStatus.textContent = "DB: waiting for file";
+        activeDbLabel.textContent = "No database loaded";
+        dbLoaded = false;
+
+        return pyodide;
+      }
+
+      const appReady = initPy().catch((err) => {
+        console.error(err);
+        pyStatus.textContent = "Pyodide: error during init";
+        dbStatus.textContent = "DB: not loaded";
+      });
+
+      // handle local db uploads from user
+
+      dbFileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+          const pyodide = await appReady;
+          if (!pyodide) {
+            throw new Error("Pyodide failed to initialize.");
+          }
+
+          const buffer = await file.arrayBuffer();
+          const uint8 = new Uint8Array(buffer);
+
+          pyodide.FS.writeFile(file.name, uint8);
+
+          pyodide.globals.set("DB_FILE_NAME", file.name);
+          await pyodide.runPythonAsync(`load_db_from_fs(DB_FILE_NAME)`);
+
+          dbStatus.textContent = `DB: loaded (${file.name})`;
+          activeDbLabel.textContent = file.name;
+          dbLoaded = true;
+        } catch (e) {
+          console.error(e);
+          dbStatus.textContent = "DB: error loading file";
+          alert("Error loading DB: " + (e.message || String(e)));
+          dbLoaded = false;
+          activeDbLabel.textContent = "No database loaded";
+        } finally {
+          dbFileInput.value = "";
+        }
+      });
+
+      // tab setup and query wiring
+
+      const tabsHeader = document.getElementById("tabs-header");
+      const tabsContainer = document.getElementById("tabs-container");
+      const addTabBtn = document.getElementById("add-tab-btn");
+
+      let nextTabId = 1;
+      let currentTabId = null;
+
+      // map of tabId -> Ace editor instance
+      const editors = {};
+
+      function createTab() {
+        const tabId = String(nextTabId++);
+        const tabLabel = `Tab ${tabId}`;
+
+        // build tab button with title and close
+        const btn = document.createElement("button");
+        btn.className = "tab-btn";
+        btn.dataset.tabId = tabId;
+        btn.innerHTML = `
+          <span class="tab-title">${tabLabel}</span>
+          <span class="tab-close" title="Close tab">&times;</span>
+        `;
+        tabsHeader.insertBefore(btn, addTabBtn);
+
+        // build tab content for query and results
+        const tabDiv = document.createElement("div");
+        tabDiv.className = "tab-content";
+        tabDiv.dataset.tabId = tabId;
+
+        tabDiv.innerHTML = `
+          <div id="results-${tabId}" class="panel results-panel">
+            Run a query to see results…
+          </div>
+          <div id="error-${tabId}" class="error-line"></div>
+          <textarea
+            id="sql-input-${tabId}"
+            style="display:none;"
+          ></textarea>
+          <div
+            id="editor-${tabId}"
+            class="sql-editor"
+            style="height: 380px; width: 100%; border: 1px solid #333; margin-top: 8px;"
+          ></div>
+          <button class="run-btn" data-tab-id="${tabId}">Run query</button>
+        `;
+
+        tabsContainer.appendChild(tabDiv);
+
+        // initialize Ace on this tab
+        const editorDiv = document.getElementById(`editor-${tabId}`);
+        if (window.ace && editorDiv) {
+          const editor = ace.edit(editorDiv);
+          editor.setTheme("ace/theme/monokai");
+          editor.session.setMode("ace/mode/sql");
+          editor.session.setUseSoftTabs(true);
+          editor.session.setTabSize(2);
+          editor.setOptions({
+            fontSize: "13px",
+            showPrintMargin: false,
+            wrap: true,
+          });
+
+          editor.setValue(
+            `Write your SQL query for ${tabLabel} here...`,
+            -1
+          );
+
+          editors[tabId] = editor;
+        }
+
+        // flip ui focus to this new tab
+        switchToTab(tabId);
+      }
+
+      function switchToTab(tabId) {
+        currentTabId = tabId;
+
+        const buttons = tabsHeader.querySelectorAll(".tab-btn");
+        buttons.forEach((b) => {
+          b.classList.toggle("active", b.dataset.tabId === tabId);
+        });
+
+        const contents = tabsContainer.querySelectorAll(".tab-content");
+        contents.forEach((c) => {
+          c.classList.toggle("active", c.dataset.tabId === tabId);
+        });
+      }
+
+      function closeTab(tabId) {
+        const btn = tabsHeader.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        if (btn) {
+          tabsHeader.removeChild(btn);
+        }
+
+        const content = tabsContainer.querySelector(
+          `.tab-content[data-tab-id="${tabId}"]`
+        );
+        if (content) {
+          tabsContainer.removeChild(content);
+        }
+
+        if (editors[tabId]) {
+          editors[tabId].destroy();
+          delete editors[tabId];
+        }
+
+        if (currentTabId === tabId) {
+          const remaining = tabsHeader.querySelectorAll(".tab-btn");
+          if (remaining.length > 0) {
+            switchToTab(remaining[0].dataset.tabId);
+          } else {
+            currentTabId = null;
+          }
+        }
+      }
+
+      // single click wiring for tabs buttons and run actions
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+
+        if (target.classList.contains("tab-close")) {
+          const btn = target.closest(".tab-btn");
+          if (!btn) return;
+          const tabId = btn.dataset.tabId;
+          closeTab(tabId);
+          return;
+        }
+
+        const tabBtn = target.closest(".tab-btn");
+        if (tabBtn && tabBtn.id !== "add-tab-btn") {
+          const tabId = tabBtn.dataset.tabId;
+          switchToTab(tabId);
+          return;
+        }
+
+        if (target.id === "add-tab-btn") {
+          createTab();
+          return;
+        }
+
+        if (target.classList.contains("run-btn")) {
+          const tabId = target.dataset.tabId;
+          runSqlForTab(tabId, target);
+          return;
+        }
+      });
+
+      // double click on tab to rename it
+      document.addEventListener("dblclick", (event) => {
+        const btn = event.target.closest(".tab-btn");
+        if (!btn || btn.id === "add-tab-btn") return;
+
+        const titleSpan = btn.querySelector(".tab-title");
+        if (!titleSpan) return;
+
+        const currentName = titleSpan.textContent;
+        const newName = prompt("Rename tab:", currentName);
+        if (newName && newName.trim()) {
+          titleSpan.textContent = newName.trim();
+        }
+      });
+
+      async function runSqlForTab(tabId, runButton) {
+        const resultsDiv = document.getElementById(`results-${tabId}`);
+        const errorDiv = document.getElementById(`error-${tabId}`);
+        const sqlTextarea = document.getElementById(`sql-input-${tabId}`);
+
+        const editor = editors[tabId];
+        const sql = editor ? editor.getValue() : sqlTextarea.value;
+        const trimmed = sql.trim();
+
+        resultsDiv.innerHTML = "";
+        errorDiv.textContent = "";
+
+        if (!dbLoaded) {
+          errorDiv.textContent = "Load a database file before running a query.";
+          return;
+        }
+
+        if (!trimmed || trimmed.startsWith("Write your SQL query")) {
+          errorDiv.textContent = "Enter a SQL query.";
+          return;
+        }
+
+        runButton.disabled = true;
+        const originalLabel = runButton.textContent;
+        runButton.textContent = "Running…";
+
+        try {
+          const pyodide = await appReady;
+          if (!pyodide) {
+            throw new Error("Pyodide failed to initialize.");
+          }
+
+          pyodide.globals.set("CURRENT_SQL", trimmed);
+          const result = await pyodide.runPythonAsync("run_query(CURRENT_SQL)");
+
+          renderResults(result, resultsDiv);
+        } catch (e) {
+          console.error(e);
+          errorDiv.textContent = e.message || String(e);
+        } finally {
+          runButton.disabled = false;
+          runButton.textContent = originalLabel;
+        }
+      }
+
+      function renderResults(result, container) {
+        container.innerHTML = "";
+
+        if (!result || !result.columns || !result.rows || result.rows.length === 0) {
+          container.textContent = "No rows returned.";
+          return;
+        }
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+
+        for (const col of result.columns) {
+          const th = document.createElement("th");
+          th.textContent = col;
+          headerRow.appendChild(th);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        for (const row of result.rows) {
+          const tr = document.createElement("tr");
+          for (const cell of row) {
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+
+        container.appendChild(table);
+      }
+
+      // spin up a few tabs by default
+      createTab();
+      createTab();
+      createTab();
+
+      // nav toggle for Doomscroll header
+      (function initDoomscrollNav() {
+        const nav = document.querySelector(".ds-site-nav");
+        if (!nav) return;
+
+        const toggle = nav.querySelector(".ds-nav-toggle");
+        const links = nav.querySelector(".ds-nav-links");
+
+        if (!toggle || !links) return;
+
+        toggle.addEventListener("click", () => {
+          const isOpen = nav.classList.toggle("ds-open");
+          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        });
+
+        links.addEventListener("click", (event) => {
+          if (event.target.tagName.toLowerCase() === "a") {
+            nav.classList.remove("ds-open");
+            toggle.setAttribute("aria-expanded", "false");
+          }
+        });
+      })();
+    </script>
+    <footer>
+        <div class="centered">
+            <em><p id="footer-year">Doomscroll (The Chef's Blog) | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+              <div class="social-row">
+          <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+            <img src="../../images/IMG_github.jpeg" alt="GitHub Logo">
+          </a>
+
+          <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+              <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+            </svg>
+          </a>
+
+          <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+            </svg>
+          </a>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

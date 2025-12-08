@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    The Chef's Blog
+    <title>A Tale of Tokens, Cookies, and Curious Behaviors</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <header>
+        <h1>A Tale of Tokens, Cookies, and Curious Behaviors</h1>
+<div class="social-row">
+  <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+    <img src="images/IMG_github.jpeg" alt="GitHub Logo">
+  </a>
+
+  <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+      <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+    </svg>
+  </a>
+
+  <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+      <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+    </svg>
+  </a>
+</div>
+
+        <div id="nav-placeholder"></div>
+    </header>
+    <article>
+        <h2>Finding A Rate Limit Bypass With Cookies</h2>
+        <p>While doing penetration testing for a large tech company, I ran into a behavior that caught my attention. The mobile API endpoints were protected with OAuth tokens, which is standard practice for modern APIs. Each request needed a valid token, and there was a rate limit to keep traffic under control. On paper everything sounded straightforward.</p>
+        <p>In practice, I noticed that after hitting the rate limit, I could add a cookie header with a simple flag and an arbitrary value and suddenly the system would let me send more requests again. The token still had to be valid for this to work. The cookie did not have to match a real user session. It just needed to exist in the request in a way the server accepted as a cookie.</p>
+        
+        <h3>How The Behavior Showed Up</h3>
+        <p>Under normal conditions, once I reached the set limit, further requests using the same token were blocked until the limit reset. That part was expected and lined up with the design. But when I sent the same requests with the same valid token and added a generic session cookie, the server allowed an additional series of calls. It felt as if the presence of the cookie placed the request into a slightly different path in the handling logic.</p>
+
+        <h3>Some Possible Explanations</h3>
+        <p>I did not have access to the internal code or configuration, so I can not say with certainty what was happening. I can only share some ideas that fit the behavior I observed based on past experience.</p>
+        
+        <ol>
+            <li><strong>Separate Tracking For Token And Session:</strong> OAuth tokens and cookies often serve different purposes. Tokens authenticate the caller, and cookies often track session state. If the system tracks rate limits separately for these two concepts and does not fully align them, then adding a cookie could cause the server to treat the request as coming from a different context.</li>
+            <br>
+            <li><strong>Mismatched Scopes For Rate Limits:</strong> It is possible that the backend uses one scope for limits based on tokens and a different scope for session cookies. If those scopes are not unified, a request that includes both might be counted differently from a token only request. That would explain why the limit felt like it reset once the cookie appeared.</li>
+            <br>
+            <li><strong>Extra Logic Triggered By Cookies:</strong> Adding a cookie can cause the server to run additional logic that was originally designed for web clients. If that path uses different rules for limits or has looser controls, it could unintentionally allow more traffic than the mobile API path alone.</li>
+            <br>
+            <li><strong>How The Rate Limit Key Is Built:</strong> Many rate limit systems build their keys using combinations of headers such as tokens, IP addresses, and cookies. If adding a cookie changes the key, then the server may believe it is seeing traffic from a new source and start counting again from zero.</li>
+        </ol>
+
+        <h3>Why This Matters In Real Use</h3>
+        <p>Even though I can not prove the exact cause without seeing the backend, the outcome is still important. Any time two different ways of tracking identity or sessions are combined, there is a risk that the system will treat them as more separate than intended. That opens the door for people to send more traffic than the original limits were meant to allow.</p>
+        <p>In a real environment, this kind of behavior can support scraping, automated abuse, or just more pressure on backend services than the team expects. That is why small details around how tokens and cookies are handled together deserve attention.</p>
+
+        <h3>Looking Back On The Finding</h3>
+        <p>I do not view this as a simple failure or oversight by the team that built the system. These are the kinds of interactions that are easy to miss when features are added over time and different pieces of authentication logic grow alongside each other. Tokens and cookies each make sense on their own, but when they overlap in ways no one explicitly designed for, you get behavior like this.</p>
+        
+        <p>When I reported this, my goal was to give the team one more signal to help them tighten the relationship between their different authentication paths, and to make sure that rate limits apply consistently regardless of how a client chooses to send its session information. Small adjustments here can go a long way toward keeping systems and users better protected.</p>
+    <br>
+        <h3>If you are curious about how I worked through this, I built a mind map while I was testing. It walks through the questions I asked along the way and the branches I followed before landing on this behavior.</h3>
+    <br>
+<div style="width: 1750opx; height: 450px; overflow: auto; border: 2px solid #666;">
+    <img src="images/mind_map_cookie_and_token_research.png" style="width: 1750px; height: 450px;" alt="Mind Map Image">
+</div>
+    </article>
+    <footer>
+        <div class="centered">
+            <em><p id="footer-year">The Chef's Blog | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+</body>
+<script>
+function initNavToggle() {
+  const nav = document.querySelector(".site-nav");
+  if (!nav) return;
+
+  const toggle = nav.querySelector(".nav-toggle");
+  const links = nav.querySelector(".nav-links");
+
+  toggle.addEventListener("click", () => {
+    const isOpen = nav.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
+  // close menu when a link is clicked
+  links.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "a") {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+fetch("nav.html")
+  .then(res => res.text())
+  .then(html => {
+    const placeholder = document.getElementById("nav-placeholder");
+    placeholder.innerHTML = html;
+    initNavToggle();
+  });
+</script>
+</html>

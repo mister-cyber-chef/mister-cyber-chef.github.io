@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    The Chef's Blog
+    <title>Rediscovering a Rate Limit Bypass: Cookie Header Strikes Again</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Rediscovering a Rate Limit Bypass: Cookie Header Strikes Again</h1>
+        <div class="social-row">
+          <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+            <img src="images/IMG_github.jpeg" alt="GitHub Logo">
+          </a>
+
+          <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+              <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+            </svg>
+          </a>
+
+          <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+            </svg>
+          </a>
+        </div>
+        <div id="nav-placeholder"></div>
+    </header>
+    <article>
+        <h2>The Discovery and What Caught My Attention</h2>
+        <p>During a recent assessment, I ran into a rate limit issue that felt familiar but still surprising in its own way. The API I was testing had a typical rate limiting setup to slow down repetitive or aggressive traffic. After reaching the limit, I noticed something unexpected. If I replaced the Authorization Bearer token with a Cookie header, the system allowed me to continue making requests. The cookie did not need to match a real session. It simply needed to look like a proper cookie.</p>
+        
+        <h3>A Simple Swap with Unintended Results</h3>
+        <p>Once the rate limit kicked in, the system responded with the usual error codes such as 302, 400, and 429. But as soon as I added the Cookie header, everything changed. Requests that should have been blocked were now going through without resistance. It did not matter that the rate limit had already been reached. The presence of the cookie alone was enough to let the traffic flow again.</p>
+
+        <h3>Trying to Understand What Was Happening</h3>
+        <p>Without access to the backend, I can only share ideas based on past experience and what I observed during testing. Here are a few possibilities that may explain why this worked:</p>
+        <ol>
+            <li><strong>Session Context Override:</strong> Some systems tie rate limits to session identifiers. By switching from a token to a cookie, the request might have been treated as coming from a different session entirely.</li>
+            <br>
+            <li><strong>Fallback Between Authentication Methods:</strong> When a system supports both token based requests and cookie based session handling, one type of authentication may unintentionally take priority over the other. The cookie may have shifted the system into a different logic path where the rate limit was not enforced the same way.</li>
+            <br>
+            <li><strong>Confusion in the Rate Limit Key:</strong> Many rate limiters use a combination of headers and identifiers to track usage. Adding the cookie may have altered that key enough to make the server think it was receiving traffic from a different source.</li>
+            <br>
+            <li><strong>Mixed Response Code Behavior:</strong> The different response codes I saw suggested that requests were being handled through slightly different logic branches depending on the headers present. This usually means inconsistent session handling somewhere in the chain.</li>
+        </ol>
+
+        <h3>Why This Matters More Than It First Appears</h3>
+        <p>At first glance this type of bypass might seem small, but it can allow for several problematic behaviors:</p>
+        <ul>
+            <li><strong>Uncontrolled Request Volume:</strong> Someone could make far more requests than intended and collect much more data than the system is designed to expose at one time.</li>
+            <li><strong>Brute Force Attempts:</strong> If rate limits can be avoided, the door is open for repeated password or credential testing.</li>
+            <li><strong>Strain on Backend Systems:</strong> Allowing unlimited calls can slow down or even disrupt services for real users.</li>
+            <li><strong>Unwanted Data Harvesting:</strong> Excessive data scraping becomes much easier when limits can be ignored.</li>
+        </ul>
+
+        <h3>A Pattern I Have Seen Before</h3>
+        <p>This was not the first time I found a rate limit bypass related to cookies. In a previous assessment, I discovered that combining a session cookie with an OAuth token opened the door to bypass rate limits in a different way. This time it required even less. A simple swap between a token and a cookie was enough. Whenever multiple authentication methods exist side by side, it becomes easy for small gaps to appear between them.</p>
+
+        <h3>A Quick Reflection</h3>
+        <p>I do not see this as a mistake by the development team, but more as one of those tricky interactions that happen when a system evolves over time. Small pieces of logic can collide in ways nobody expects. Finding these issues helps strengthen the system and gives everyone a clearer picture of how the service behaves in real conditions.</p>
+
+        <h3>Here is the mind map I put together as I worked through this discovery. It took a bit of back and forth to piece everything together, but it was a fun challenge.</h3>
+       <div style="width: 1700opx; height: 400px; overflow: auto; border: 2px solid #665;">
+            <img src="images/cookie_id_mind_map.png" style="width: 1700px; height: 400px;" alt="Mind Map Image">
+        </div>
+    </article>
+    <footer>
+        <div class="centered">
+            <em><p id="footer-year">The Chef's Blog | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+</body>
+<script>
+function initNavToggle() {
+  const nav = document.querySelector(".site-nav");
+  if (!nav) return;
+
+  const toggle = nav.querySelector(".nav-toggle");
+  const links = nav.querySelector(".nav-links");
+
+  toggle.addEventListener("click", () => {
+    const isOpen = nav.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
+  // close menu when a link is clicked
+  links.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "a") {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+fetch("nav.html")
+  .then(res => res.text())
+  .then(html => {
+    const placeholder = document.getElementById("nav-placeholder");
+    placeholder.innerHTML = html;
+    initNavToggle();
+  });
+</script>
+</html>

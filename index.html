@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mister Cyber Chef</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+
+<body>
+    <header>
+        <h1>The Chef's Blog</h1>
+        <div class="social-row">
+          <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+            <img src="images/IMG_github.jpeg" alt="GitHub Logo">
+          </a>
+
+          <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+              <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+            </svg>
+          </a>
+
+          <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+            </svg>
+          </a>
+        </div>
+        <div id="nav-placeholder"></div>
+    </header>
+
+    <article> 
+        <p>
+            Thank you for stopping by. This space is just a simple place where I share things I have learned,
+            the problems I have run into, and the ideas that keep me curious as I work in security and tech.
+            Nothing fancy, just honest notes and observations as I continue growing in this field.
+        </p>
+
+        <p>
+            I hope something here helps you, gives you a new perspective, or sparks an idea of your own.
+            I am glad you are here.
+        </p>
+
+        <h2>The Doomscroll Project</h2>
+
+        <p>
+            Doomscroll is something I created to give investigators and curious learners a place to practice real
+            traffic analysis without needing access to production systems or sensitive data. It is meant to feel
+            grounded and approachable, not overwhelming or overly technical. The goal is to offer a realistic
+            environment where you can work through logs, explore behavior, and build an instinct for what normal
+            activity looks like and what stands out as suspicious.
+        </p>
+
+        <p>
+            The project comes with its own mixed traffic and provides a full day of activity so you
+            can dig in and start forming your own conclusions. Nothing is pointed out
+            ahead of time. You get the raw data and the freedom to investigate, ask questions, and discover patterns
+            on your own terms. My hope is that this gives people a way to grow their threat hunting and detection
+            analysis skills in a setting that feels safe, supportive, and honest.
+        </p>
+
+        <p>
+            If this project helps you learn something new or sharpen a skill you already have, then it has done its
+            job. If you run into any issues or want to share feedback, I am always open to hearing from you and happy
+            to help where I can.
+        </p>
+
+        <p>
+            Check out the project <a href="/doomscroll/doomscroll_ctf.html">here</a>.
+        </p>
+
+        <img src="images/mister_chef.jpg" alt="" width="500" style="display: block; margin: 0 auto;">
+    </article>
+
+    <footer>
+        <div class="centered">
+            <em><p id="footer-year">The Chef's Blog | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+
+    <!-- nav loader -->
+    <script>
+    function initNavToggle() {
+        const nav = document.querySelector(".site-nav");
+        if (!nav) return;
+
+        const toggle = nav.querySelector(".nav-toggle");
+        const links = nav.querySelector(".nav-links");
+
+        toggle.addEventListener("click", () => {
+            const isOpen = nav.classList.toggle("open");
+            toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        });
+
+        links.addEventListener("click", (e) => {
+            if (e.target.tagName.toLowerCase() === "a") {
+                nav.classList.remove("open");
+                toggle.setAttribute("aria-expanded", "false");
+            }
+        });
+    }
+
+    fetch("nav.html")
+        .then(res => res.text())
+        .then(html => {
+            const placeholder = document.getElementById("nav-placeholder");
+            placeholder.innerHTML = html;
+            initNavToggle();
+        });
+    </script>
+
+</body>
+</html>

