@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en" >
+  <head>
+    <meta charset="utf-8" />
+    <title>Doomscroll CTF – Instructions</title>
+    <link rel="stylesheet" href="../../styles/styles.css" />
+  </head>
+  <body>
+    <h1>Instructions</h1>
+    <h1>Prerequisites</h1>
+        <ul>
+            <li>Download the <code>doomscroll_logs_logged_in.db.zip</code> by navigating to <code>https://mister-cyber-chef.github.io/doomscroll/db_assets/doomscroll_logs_logged_in.db.zip</code> or directly from github at <code>https://github.com/mister-cyber-chef/mister-cyber-chef.github.io/tree/main/doomscroll/db_assets</code>
+            <li>Unzip <code>doomscroll_logs_logged_in.db.zip</code>
+            <li>Upload the <code>doomscroll_logs_logged_in.db</code> file to <code>https://mister-cyber-chef.github.io/doomscroll/doomscroll_ctf.html</code>
+        </ul>
+    <h2>Scenario</h2>
+    <p>
+      Yesterday, the DoomScroll security team received a report from a partner
+      indicating that <strong>some kind of automated scraping activity</strong>
+      may be occurring against the mobile site:
+    </p>
+
+    <p><code>m.doomscroll.net</code></p>
+
+    <p>
+      To investigate, you've been handed a <strong>single day of HTTP logs</strong>
+      (~300,000 entries) captured during the suspected activity window.
+    </p>
+
+    <hr />
+
+    <h2>Your Goal</h2>
+    <p>
+      Identify the <strong>bad actor</strong> and determine
+      <strong>what they are doing</strong> using <strong>SQL</strong>.
+    </p>
+
+    <p>
+      You are not being told what endpoint or dataset is being targeted.
+    </p>
+
+    <p><strong>Your task is to:</strong></p>
+    <ul>
+      <li>Discover patterns in the traffic</li>
+      <li>Isolate suspicious behavior</li>
+      <li>
+        Aarrive at a <strong>defensible conclusion</strong> and justify your
+        findings using SQL queries
+      </li>
+    </ul>
+
+    <hr />
+
+    <h2>You May Assume</h2>
+    <ul>
+      <li>
+        Logs represent <strong>real user</strong> and
+        <strong>partner traffic</strong> mixed with noise
+      </li>
+      <li>Suspicious traffic is present but <strong>not labeled</strong></li>
+    </ul>
+
+    <hr />
+
+    <h2>The Dataset</h2>
+    <p>You will be working with a <strong>SQLite database</strong>:</p>
+    <ul>
+      <li>
+        <strong>Table:</strong>
+        <code>doomscroll_logs_logged_in</code>
+      </li>
+    </ul>
+
+    <p>All rows represent <strong>logged in</strong> requests only.</p>
+
+    <h3>Table Fields</h3>
+    <ul>
+      <li><code>timestamp</code></li>
+      <li><code>uri</code></li>
+      <li><code>userID</code></li>
+      <li><code>IP</code></li>
+      <li><code>ASN</code></li>
+      <li><code>requestHeaders</code></li>
+      <li><code>requestCookieNames</code></li>
+      <li><code>JA4</code></li>
+      <li><code>userAgent</code></li>
+      <li><code>parameters</code></li>
+      <li><code>responseCode</code></li>
+      <li><code>responseContentSize</code></li>
+    </ul>
+  </body>
+
+  <footer>
+    <div class="centered">
+      <em>
+        <p id="footer-year">
+          Doomscroll (The Chef's Blog) | Copyright © <span></span> | All rights reserved.
+        </p>
+      </em>
+    </div>
+    <div class="social-row">
+      <a href="https://github.com/mister-cyber-chef/" class="social-icon">
+        <img src="../../images/IMG_github.jpeg" alt="GitHub Logo">
+      </a>
+
+      <a href="https://x.com/mrgosint" title="Mrgosint on X" class="social-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 204">
+          <path fill="#ffffff" d="M248 24.3a102.2 102.2 0 0 1-29.2 8 51.1 51.1 0 0 0 22.4-28.2 102.6 102.6 0 0 1-32.4 12.4A51.1 51.1 0 0 0 121 63a145 145 0 0 1-105-53 51 51 0 0 0 15.8 68.2A50.9 50.9 0 0 1 10 70.7v.6a51 51 0 0 0 40.9 50 51 51 0 0 1-23 1 51.1 51.1 0 0 0 47.7 35.4A102.7 102.7 0 0 1 0 180.4 145 145 0 0 0 78.5 202c94.3 0 145.9-78.2 145.9-146 0-2.2 0-4.4-.1-6.5A104.4 104.4 0 0 0 248 24.3z"/>
+        </svg>
+      </a>
+
+      <a href="https://www.linkedin.com/in/mysocialacc" title="LinkedIn" class="social-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+          <path fill="#ffffff" d="M100.28 448H7.4V148.9h92.88zm-46.44-341a53.8 53.8 0 1 1 53.8-53.8 53.8 53.8 0 0 1-53.8 53.8zM447.9 448h-92.68V302.4c0-34.7-.7-79.3-48.29-79.3-48.4 0-55.8 37.8-55.8 76.9V448h-92.7V148.9h89v40.8h1.3c12.4-23.5 42.6-48.3 87.7-48.3 93.8 0 111.1 61.7 111.1 141.9z"/>
+        </svg>
+      </a>
+    </div>
+  </footer>
+
+  <!-- get footer Year -->
+  <script>
+    document.querySelector("#footer-year span").textContent = new Date().getFullYear();
+  </script>
+</html>
